@@ -503,10 +503,14 @@ class LinuxService(Service):
             self.svc_initctl = location['initctl']
 
     def get_systemd_service_enabled(self):
-        (rc, out, err) = self.execute_command("%s is-enabled %s" % (self.enable_cmd, self.__systemd_unit,))
-        if rc == 0:
+        # The systemd 'is-enabled' command does not work with units
+        # instantiated from a template file (e.g. service@userid.service). Use
+        # 'WantedBy' to detect whether the service is enabled.
+        status_dict = self.get_systemd_status_dict()
+        if len(status_dict.get('WantedBy', '')) > 0:
             return True
-        return False
+        else:
+            return False
 
     def get_systemd_status_dict(self):
         (rc, out, err) = self.execute_command("%s show %s" % (self.enable_cmd, self.__systemd_unit,))
